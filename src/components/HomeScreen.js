@@ -1,6 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { View, Text } from 'react-native';
+import { View, Text, TextInput } from 'react-native';
+import { Actions } from 'react-native-router-flux';
 
 class HomeScreen extends React.Component
 {
@@ -8,8 +9,8 @@ class HomeScreen extends React.Component
     {
         return (
             <View>
-				<Text>On the home screen. Welcome friend!</Text>
-			</View>
+                Home screen
+            </View>
         );
     }
 }

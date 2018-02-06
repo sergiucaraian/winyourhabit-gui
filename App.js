@@ -5,8 +5,10 @@ import {Provider, connect} from 'react-redux';
 import {Scene, Actions, Router, Stack} from 'react-native-router-flux';
 
 import ReduxRouter from './src/redux/ReduxRouter';
-import HomeScreen from './src/components/HomeScreen';
+import WelcomeScreen from './src/components/WelcomeScreen';
 import LoginScreen from './src/components/LoginScreen';
+import RegisterScreen from './src/components/RegisterScreen';
+import HomeScreen from './src/components/HomeScreen';
 
 import Config from 'react-native-config';
 import WinYourHabitClient from './src/services/api/WinYourHabitClient';
@@ -35,8 +37,10 @@ export default class App extends React.Component {
 			<Provider store={store}>
 				<ReduxRouter>
 					<Stack key="root">
+						<Scene key="welcome" component={WelcomeScreen} />
 						<Scene key="login" component={LoginScreen} title="Login" />
-						<Scene key="home" component={HomeScreen} />
+						<Scene key="register" component={RegisterScreen} title="Register" />
+						<Scene key="home" component={HomeScreen} tilte="Home" />
 					</Stack>
 				</ReduxRouter>
 			</Provider>

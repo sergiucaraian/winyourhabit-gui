@@ -2,13 +2,13 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { View, Text, TextInput, Button } from 'react-native';
 import { Actions } from 'react-native-router-flux';
-import { loginRequest } from '../redux/actions';
+import { registerRequest } from '../redux/actions';
 
 const mapDispatchToProps = dispatch => ({
-    onSubmit: ({ email, password }) => dispatch(loginRequest(email, password))
+    onSubmit: ({ email, password }) => dispatch(registerRequest(email, password))
 });
 
-class LoginScreen extends React.Component
+class RegisterScreen extends React.Component
 {
     constructor(props)
     {
@@ -25,7 +25,7 @@ class LoginScreen extends React.Component
     handleSubmit()
     {
         this.props.onSubmit(this.state.email, this.state.password);
-        
+
         this.setState({
             email: '',
             password: ''
@@ -41,11 +41,11 @@ class LoginScreen extends React.Component
                     <TextInput value={this.state.password} onChangeText={this.handleChangePassword} secureTextEntry={true} />
                 </View>
                 <View>
-                    <Button onPress={this.handleSubmit} title="Login" />
+                    <Button onPress={this.handleSubmit} title="Sign up" />
                 </View>
             </View>
         );
     }
 }
 
-export default connect(null, mapDispatchToProps)(LoginScreen);
+export default connect(null, mapDispatchToProps)(RegisterScreen);
