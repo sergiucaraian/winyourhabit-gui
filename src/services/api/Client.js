@@ -18,26 +18,21 @@ export default class Client
             throw new Error(`Request methond ${strMethod} is invalid. Valid request methods are ${this.constructor.requestMethods}.`);
         }
 
-        if(!strRequestPath.startsWith('/'))
-        {
-            throw new Error('strRequestPath must start with "/"');
-        }
-
         const headers = new Headers();
         Object.entries(merge({}, this.constructor.defaultHeaders, objHeaders))
             .forEach(([key, value]) => {
                 headers.append(key, value);
             });
 
-        if(Cookies.get(Config.COOKIE_NAME))
+        if(Cookies.get(Config.COOKIE_NAME || 'jwt'))
         {
-            headers.set('Authorization', `Bearer ${Cookies.get(Config.COOKIE_NAME)}`);
+            headers.set('Authorization', `Bearer ${Cookies.get(Config.COOKIE_NAME || 'jwt')}`);
         }
 
         const requestOptions = {
             method: strMethod,
             headers,
-            mode: 'cors',
+            // mode: 'cors',
             credentials: 'include'
         };
 
@@ -59,15 +54,7 @@ export default class Client
 
         let response = null;
 
-        try
-        {
-            response = await fetch(request);
-        }
-        catch (error)
-        {
-            throw new Error(`[${strMethod}] ${this.endpoint}${strRequestPath}: Request failed with error: ${error}`);
-        }
-
+        response = await fetch(request);
 
         if(bStoreAuthorizationBearer && response.headers.has('Authorization'))
         {
@@ -96,19 +83,13 @@ export default class Client
             }
         }
         else
-        {
-            let strErrorMessage;
-
-            try
+        {    
+            if(response.headers.get('content-type') === 'application/json')
             {
-                strErrorMessage = await response.text();
-            }
-            catch (error)
-            {
-                strErrorMessage = '';
+                throw await response.json();
             }
 
-            throw new Error(`[${strMethod}] ${this.endpoint}${strRequestPath}: Request failed with HTTP code ${response.status} and message: ${strErrorMessage}}`);
+            throw response;
         }
     }
 

@@ -8,12 +8,12 @@ import {
 
 export const requestError = createAction(REQUEST_ERROR, errorMessage => (errorMessage));
 
-export const loginRequest = createAction(LOGIN_REQUEST, (username, password) => ({
-    username, password
+export const loginRequest = createAction(LOGIN_REQUEST, (username, password, resolve, reject) => ({
+    username, password, resolve, reject
 }));
 
-export const registerRequest = createAction(REGISTER_REQUEST, (username, password, loginIfSuccessful = true) => ({
-    username, password, loginIfSuccessful
+export const registerRequest = createAction(REGISTER_REQUEST, (username, email, password, resolve, reject) => ({
+    username, email, password, resolve, reject
 }));
 
 export const logout = createAction(LOGOUT);

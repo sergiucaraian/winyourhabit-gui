@@ -1,8 +1,11 @@
 import { take, call, put, fork, race, getContext } from 'redux-saga/effects';
 import { Actions } from 'react-native-router-flux';
+import Config from 'react-native-config';
+import { SubmissionError } from 'redux-form';
 import Authentication from '../logic/Authentication';
 import { requestError, loginRequest } from './actions';
 import { LOGIN_REQUEST, REGISTER_REQUEST, LOGOUT } from './types';
+import Cookies from 'js-cookie';
 
 
 export function* authenticate(username, password)
@@ -11,27 +14,30 @@ export function* authenticate(username, password)
 
     try
     {
-        return yield call([api, api.login], username, password);
+        const result = yield call([api, api.login], username, password);
+        Cookies.set(Config.COOKIE_NAME || 'jwt', result.access);
+        return { success: true, result };
     }
     catch (error)
     {
-        yield put(requestError(error.message));
-        return false;
+        yield put(requestError(error));
+        return { success: false, error};
     }
 }
 
-export function* register(username, password)
+export function* register(username, email, password)
 {
     const api = yield getContext('api');
 
     try
     {
-        return yield call([api, api.register], username, password);
+        const result =  yield call([api, api.register], username, email, password);
+        return { success: true, result };
     }
     catch (error)
     {
-        yield put(requestError(error.message));
-        return false;
+        yield put(requestError(error));
+        return { success: false, error };
     }
 }
 
@@ -45,7 +51,7 @@ export function* loginFlow()
     while (true)
     {
         const request = yield take(LOGIN_REQUEST);
-        const { username, password } = request.payload;
+        const { username, password, resolve, reject } = request.payload;
 
         const [response, cancel] = yield race([
             call(authenticate, username, password),
@@ -54,7 +60,18 @@ export function* loginFlow()
 
         if(response !== undefined && response !== false)
         {
-            Actions.home();
+            if(response.success)
+            {
+                Actions.home();
+            }
+            else if(reject)
+            {
+                reject(new SubmissionError({
+                    username: response.error.username || response.error.non_field_errors,
+                    password: response.error.password,
+                    _error: response.error.non_field_errors
+                }));
+            }
         }
     }
 }
@@ -64,13 +81,22 @@ export function* registerFlow()
     while (true)
     {
         const request = yield take(REGISTER_REQUEST);
-        const { username, password, loginIfSuccessful } = request.payload;
+        const { username, email, password, resolve, reject } = request.payload;
 
-        const wasSuccessful = yield call(register, username, password);
+        const resultObject = yield call(register, username, email, password);
 
-        if(wasSuccessful && loginIfSuccessful)
+        if(resultObject.success)
         {
             yield put(loginRequest(username, password));
+        }
+        else if(!resultObject.success)
+        {
+            reject(new SubmissionError({
+                username: resultObject.error.username,
+                email: resultObject.error.email,
+                password: resultObject.error.password,
+                _error: 'Register failed' 
+            }));
         }
     }
 }

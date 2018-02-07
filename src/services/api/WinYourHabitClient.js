@@ -1,35 +1,36 @@
 import merge from 'merge';
 import Client from './Client';
 
-export default class WalletClient extends Client
+export default class WinYourHabitClient extends Client
 {
-    login(email, password)
+    login(username, password)
     {
-        const body = [
-            ['email', email],
-            ['password', password]
-        ];
-        
+        const body = new FormData();
+
+        body.append('username', username);
+        body.append('password', password);
+
         const headers = merge({}, this.constructor.defaultHeaders, {
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'multipart/form-data'
         });
 
-        return this.makeRequest('/user/login', 'POST', body, headers, true);
+        return this.makeRequest('api/token/', 'POST', body, headers, true);
     }
 
 
-    register(email, password)
+    register(username, email, password)
     {
-        const body = [
-            ['email', email],
-            ['password', password]
-        ];
+        const body = new FormData();
+
+        body.append('username', username);
+        body.append('email', email);
+        body.append('password', password);
 
         const headers = merge({}, this.constructor.defaultHeaders, {
             'Content-Type': 'application/x-www-form-urlencoded'
         });
 
-        return this.makeRequest('/user', 'POST', body, headers);
+        return this.makeRequest('users/', 'POST', body, headers);
     }
 
 

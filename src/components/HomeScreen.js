@@ -9,7 +9,7 @@ class HomeScreen extends React.Component
     {
         return (
             <View>
-                Home screen
+                <Text>Home screen</Text>
             </View>
         );
     }

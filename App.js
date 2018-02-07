@@ -16,7 +16,7 @@ import WinYourHabitClient from './src/services/api/WinYourHabitClient';
 import reducers from './src/redux/reducers';
 import saga from './src/redux/sagas';
 
-const api = new WinYourHabitClient(Config.ENDPOINT_URL);
+const api = new WinYourHabitClient(Config.ENDPOINT_URL || 'https://winyourhabit.herokuapp.com/');
 global.api = api;
 
 const sagaMiddlewareInstance = createSagaMiddleware({
@@ -37,9 +37,9 @@ export default class App extends React.Component {
 			<Provider store={store}>
 				<ReduxRouter>
 					<Stack key="root">
-						<Scene key="welcome" component={WelcomeScreen} />
-						<Scene key="login" component={LoginScreen} title="Login" />
-						<Scene key="register" component={RegisterScreen} title="Register" />
+						<Scene key="welcome" component={WelcomeScreen} hideNavBar />
+						<Scene key="login" component={LoginScreen} title="Login" hideNavBar />
+						<Scene key="register" component={RegisterScreen} title="Register" hideNavBar />
 						<Scene key="home" component={HomeScreen} tilte="Home" />
 					</Stack>
 				</ReduxRouter>
