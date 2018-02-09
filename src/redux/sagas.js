@@ -3,8 +3,8 @@ import { Actions } from 'react-native-router-flux';
 import Config from 'react-native-config';
 import { SubmissionError } from 'redux-form';
 import Authentication from '../logic/Authentication';
-import { requestError, loginRequest, setLoggedInUserID, setUsers, setGroups, setUserGroups, setObjectives, getGroupActiveObjectives, getGroupObjectivesToVote, setGroupActiveObjectives, setGroupObjectivesToVote } from './actions';
-import { LOGIN_REQUEST, REGISTER_REQUEST, LOGOUT, FETCH_USERS_REQUEST, FETCH_GROUPS_REQUEST, FETCH_USER_GROUPS_REQUEST, FETCH_OBJECTIVES_REQUEST, FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST, FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST } from './types';
+import { requestError, loginRequest, setLoggedInUserID, setUsers, setGroups, setUserGroups, setObjectives, getGroupActiveObjectives, getGroupObjectivesToVote, setGroupActiveObjectives, setGroupObjectivesToVote, fetchObjectivesRequest, fetchGroupsRequest, fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest } from './actions';
+import { SEND_TEXT_PROOF_REQUEST, LOGIN_REQUEST, REGISTER_REQUEST, LOGOUT, FETCH_USERS_REQUEST, FETCH_GROUPS_REQUEST, FETCH_USER_GROUPS_REQUEST, FETCH_OBJECTIVES_REQUEST, FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST, FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST, SEND_PHOTO_PROOF_REQUEST } from './types';
 import Cookies from 'js-cookie';
 import jwtDecode from 'jwt-decode';
 
@@ -224,7 +224,7 @@ export function* fetchGroupActiveObjectives()
         }
         catch (error)
         {
-            console.log(error);
+            console.error(error);
             yield put(requestError(error.message));
             continue;
         }
@@ -254,6 +254,55 @@ export function* fetchGroupObjectivesToVote()
     }
 }
 
+export function* sendTextProof()
+{
+    const api = yield getContext('api');
+
+    while (true)
+    {
+        const action = yield take(SEND_TEXT_PROOF_REQUEST);
+
+        try
+        {
+            const proof = yield call([api, api.createTextProof], action.payload.objectiveID, action.payload.proofValue );
+            yield put(fetchGroupsRequest());
+            yield put(fetchGroupActiveObjectivesRequest(action.payload.groupID));
+            yield put(fetchGroupObjectivesToVoteRequest(action.payload.groupID));
+        }
+        catch (error)
+        {
+            console.error(error);
+            yield put(requestError(error.message));
+            continue;
+        }
+    }
+}
+
+export function* sendPhotoProof()
+{
+    const api = yield getContext('api');
+
+    while (true)
+    {
+        const action = yield take(SEND_PHOTO_PROOF_REQUEST);
+
+        try
+        {
+            const proof = yield call([api, api.createPhotoProof], action.payload.objectiveID, action.payload.photoURI );
+            yield put(fetchGroupsRequest());
+            yield put(fetchGroupActiveObjectivesRequest(action.payload.groupID));
+            yield put(fetchGroupObjectivesToVoteRequest(action.payload.groupID));
+        }
+        catch (error)
+        {
+            console.error(error);
+            yield put(requestError(error.message));
+            continue;
+        }
+    }
+}
+
+
 export default function* ()
 {
     yield fork(loginFlow);
@@ -265,4 +314,6 @@ export default function* ()
     yield fork(fetchObjectives);
     yield fork(fetchGroupActiveObjectives);
     yield fork(fetchGroupObjectivesToVote);
+    yield fork(sendTextProof);
+    yield fork(sendPhotoProof);
 }

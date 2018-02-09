@@ -103,6 +103,41 @@ export default class WinYourHabitClient extends Client
         return JSON.parse(response);
     }
 
+    async createTextProof(objectiveID, proofValue)
+    {
+        const body = new FormData();
+
+        body.append('type', 'text');
+        body.append('content', proofValue);
+        body.append('objective', objectiveID);
+
+        const headers = merge({}, this.constructor.defaultHeaders, {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        });
+
+        return JSON.parse(await this.makeRequest('proofs/', 'POST', body, headers));
+    }
+
+    async createPhotoProof(objectiveID, photoURI)
+    {
+        const filename = photoURI.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image`;
+
+        const body = new FormData();
+
+        body.append('type', 'image');
+        body.append('content', 'placeholder-content');
+        body.append('objective', objectiveID);
+        body.append('image', {uri: photoURI, name: filename, type });
+
+        const headers = merge({}, this.constructor.defaultHeaders, {
+            'Content-Type': 'multipart/form-data'
+        });
+
+        return JSON.parse(await this.makeRequest('proofs/', 'POST', body, headers));
+    }
+
     static get defaultHeaders()
     {
         return merge({}, super.constructor.defaultHeaders, {

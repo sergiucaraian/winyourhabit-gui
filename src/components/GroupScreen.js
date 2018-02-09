@@ -2,10 +2,13 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { View, Text, TextInput, StyleSheet, ScrollView, RefreshControl, Image, TouchableOpacity, Button } from 'react-native';
 import Modal from "react-native-modal";
-import { Card, Divider, List, ListItem } from 'react-native-elements';
+import moment from 'moment';
+import { Card, Divider, List, ListItem, FormInput } from 'react-native-elements';
 import { Actions } from 'react-native-router-flux';
+import Config from 'react-native-config';
 import ActionButton from 'react-native-action-button';
-import { fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest } from '../redux/actions';
+import { ImagePicker } from 'expo';
+import { fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest, sendTextProofRequest, sendPhotoProofRequest } from '../redux/actions';
 import { makeGetGroupUsers, makeGetMyActiveObjectives, makeGetOtherUsersActiveObjectives, makeGetObjectivesToVote } from '../redux/selectors';
 
 const makeMapStateToProps = (state, ownProps) =>
@@ -36,7 +39,9 @@ const makeMapStateToProps = (state, ownProps) =>
 
 const mapDispatchToProps = (dispatch, ownProps) => ({
     fetchGroupActiveObjectives: () => dispatch(fetchGroupActiveObjectivesRequest(ownProps.group.id)),
-    fetchGroupObjectivesToVote: () => dispatch(fetchGroupObjectivesToVoteRequest(ownProps.group.id))
+    fetchGroupObjectivesToVote: () => dispatch(fetchGroupObjectivesToVoteRequest(ownProps.group.id)),
+    sendTextProof: (objectiveID, proofValue) => dispatch(sendTextProofRequest(ownProps.group.id, objectiveID, proofValue)),
+    sendPhotoProof: (objectiveID, photoURI) => dispatch(sendPhotoProofRequest(ownProps.group.id, objectiveID, photoURI))
 });
 
 const addDays = (date, days) => {
@@ -54,7 +59,6 @@ const formatDate = (date) => {
     return `${day} ${monthNames[month]} ${year}`;
 }
 
-
 class GroupScreen extends React.Component
 {
     constructor(props)
@@ -63,10 +67,16 @@ class GroupScreen extends React.Component
         this.state = {
             refreshing: false,
             objectiveProofInput: {},
-            myObjectivesModalVisible: false,
-            objectivesToVoteModalVisible: false,
-            activeObjectivesModalVisible: false
+            addTextProofModalVisible: false,
+            addTextProofModalObjectiveID: null,
+            currentPhotoObjectiveID: null,
+            addTextProofInputValue: ''
         };
+
+        this.toggleAddTextProofModal = this.toggleAddTextProofModal.bind(this);
+        this.takePhotoProof = this.takePhotoProof.bind(this);
+        this.onChangeAddTextProofInput = this.onChangeAddTextProofInput.bind(this);
+        this.sendTextProof = this.sendTextProof.bind(this);
     }
 
     async onRefresh()
@@ -89,9 +99,47 @@ class GroupScreen extends React.Component
         ]);
     }
 
-    sendProofForObjective(objectiveID)
+    toggleAddTextProofModal(objectiveID=null)
     {
-        this.submitProofForObjective(objectiveID, this.state.objectiveProofInput[objectiveID]);
+        if(this.state.addTextProofModalVisible)
+        {
+            this.setState({
+                addTextProofModalVisible: false,
+                addTextProofModalObjectiveID: null,
+                addTextProofInputValue: ''
+            });
+        }
+        else
+        {
+            this.setState({
+                addTextProofModalVisible: true,
+                addTextProofModalObjectiveID: objectiveID
+            });
+        }
+    }
+
+    async takePhotoProof(objectiveID)
+    {
+        this.setState({ currentPhotoObjectiveID: objectiveID });
+        const photoResult = await ImagePicker.launchCameraAsync();
+        
+        if(!photoResult.cancelled)
+        {
+            this.props.sendPhotoProof(this.state.currentPhotoObjectiveID, photoResult.uri);
+        }
+    }
+
+    onChangeAddTextProofInput(value)
+    {
+        this.setState({
+            addTextProofInputValue: value
+        });
+    }
+
+    sendTextProof()
+    {
+        this.props.sendTextProof(this.state.addTextProofModalObjectiveID, this.state.addTextProofInputValue);
+        this.toggleAddTextProofModal();
     }
 
     render()
@@ -104,7 +152,11 @@ class GroupScreen extends React.Component
                     {
                         this.props.group.time_frame > 1 ?
                         <Text><Text style={styles.dateLabel}>Date: </Text><Text>{formatDate(new Date(objective.start_date))}</Text> - <Text>{formatDate(addDays(new Date(objective.start_date), this.props.group.time_frame - 1))}</Text></Text>
-                        : <Text><Text style={styles.dateLabel}>Date: </Text><Text>{objective.start_date}</Text></Text>
+                        : <Text><Text style={styles.dateLabel}>Date: </Text><Text>{formatDate(new Date(objective.start_date))}</Text></Text>
+                    }
+                    {
+                        !!objective.proof && objective.proof.created_date &&
+                        <Text><Text style={styles.dateLabel}>Proof sent at: </Text><Text>{moment(objective.proof.created_date).format('Do MMMM YYYY, h:mm')}</Text></Text>
                     }
                     {
                         !!objective.proof && objective.proof.type === 'text' &&
@@ -118,17 +170,17 @@ class GroupScreen extends React.Component
                     }
                     {
                         !objective.proof && this.props.group.proof_type === 'text' &&
-                        <View>
-                            <TextInput 
-                                value={this.state.objectiveProofInput[objective.id] ? this.state.objectiveProofInput[objective.id] : ''}
-                                onChangeText={(text) => { 
-                                    const objectiveProofInput = this.state.objectiveProofInput;
-                                    objectiveProofInput[objective.id] = text;
-                                    this.setState({objectiveProofInput});
-                                }}
-                            />
-                            <TouchableOpacity onPress={() => this.sendProofForObjective(objective.id)}>
-                                <Text>Send</Text>
+                        <View style={styles.buttonWrapperOpenAddTextProofModal}>
+                            <TouchableOpacity style={styles.buttonOpenAddTextProofModal} onPress={() => this.toggleAddTextProofModal(objective.id)}>
+                                <Text style={styles.buttonTextOpenAddTextProofModal}>Send proof</Text>
+                            </TouchableOpacity>
+                        </View>
+                    }
+                    {
+                        !objective.proof && this.props.group.proof_type === 'image' &&
+                        <View style={styles.buttonWrapperOpenAddTextProofModal}>
+                            <TouchableOpacity style={styles.buttonOpenAddTextProofModal} onPress={() => this.takePhotoProof(objective.id)}>
+                                <Text style={styles.buttonTextOpenAddTextProofModal}>Take photo proof</Text>
                             </TouchableOpacity>
                         </View>
                     }
@@ -201,14 +253,6 @@ class GroupScreen extends React.Component
                     {
                         !objective.proof && this.props.group.proof_type === 'text' &&
                         <View>
-                            <TextInput 
-                                value={this.state.objectiveProofInput[objective.id] ? this.state.objectiveProofInput[objective.id] : ''}
-                                onChangeText={(text) => { 
-                                    const objectiveProofInput = this.state.objectiveProofInput;
-                                    objectiveProofInput[objective.id] = text;
-                                    this.setState({objectiveProofInput});
-                                }}
-                            />
                             <TouchableOpacity onPress={() => this.sendProofForObjective(objective.id)}>
                                 <Text>Send</Text>
                             </TouchableOpacity>
@@ -219,11 +263,28 @@ class GroupScreen extends React.Component
             </ListItem>
         ));
 
+
         return (
-            <ScrollView 
+            <ScrollView
                 refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={this.onRefresh.bind(this)}/>}
                 style={styles.container}
             >
+                <Modal isVisible={this.state.addTextProofModalVisible}>
+                    <View style={styles.modalContent}>
+                        <View>
+                            <FormInput value={this.state.addTextProofInputValue} onChangeText={this.onChangeAddTextProofInput} placeholder="Enter your proof" />
+                        </View>
+                        <View style={styles.modalControlsWrapper}>
+                            <TouchableOpacity style={styles.buttonCancelSendTextProof} onPress={this.toggleAddTextProofModal}>
+                                <Text style={styles.buttonTextOpenAddTextProofModal}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.buttonSendTextProof} onPress={this.sendTextProof}>
+                                <Text style={styles.buttonTextOpenAddTextProofModal}>Send</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+
                 <Card style={styles.header} title={this.props.group.title}>
                     <Text>{this.props.group.description}</Text>
                     <Divider style={styles.delimiter} />
@@ -256,7 +317,7 @@ class GroupScreen extends React.Component
 
 const styles = StyleSheet.create({
     container: {
-
+        
     },
     header: {
 
@@ -298,14 +359,44 @@ const styles = StyleSheet.create({
         height: undefined,
         width: undefined
     },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        backgroundColor: 'grey'
-      },
-    innerContainer: {
-    alignItems: 'center',
+    buttonWrapperOpenAddTextProofModal: {
+        marginTop: 12,
+        justifyContent: 'center'
     },
+    buttonOpenAddTextProofModal: {
+        backgroundColor: Config.DEFAULT_COLOR || '#494e6b',
+        borderRadius: 5,
+        width: 150
+    },
+    buttonTextOpenAddTextProofModal: {
+        paddingTop: 10,
+        paddingBottom: 10,
+        color: '#FFF',
+        textAlign: 'center'
+    },
+    buttonSendTextProof: {
+        backgroundColor: Config.DEFAULT_COLOR || '#494e6b',
+        borderRadius: 5,
+        width: 120
+    },
+    buttonCancelSendTextProof: {
+        backgroundColor: Config.DEFAULT_COLOR || '#494e6b',
+        borderRadius: 5,
+        width: 120
+    },
+    modalContent: {
+        backgroundColor: '#FFF', 
+        paddingTop: 20, 
+        paddingBottom: 20, 
+        paddingLeft: 30, 
+        paddingRight: 30,
+        borderRadius: 5
+    },
+    modalControlsWrapper: {
+        flexDirection: 'row', 
+        justifyContent: 'space-between',
+        marginTop: 25
+    }
 });
 
 export default connect(makeMapStateToProps, mapDispatchToProps)(GroupScreen);

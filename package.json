@@ -23,6 +23,7 @@
     "js-cookie": "^2.2.0",
     "jwt-decode": "^2.2.0",
     "merge": "^1.2.0",
+    "moment": "^2.20.1",
     "react": "16.2.0",
     "react-native": "^0.52.0",
     "react-native-action-button": "^2.8.4",
