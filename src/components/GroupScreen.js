@@ -3,12 +3,12 @@ import { connect } from 'react-redux';
 import { View, Text, TextInput, StyleSheet, ScrollView, RefreshControl, Image, TouchableOpacity, Button } from 'react-native';
 import Modal from "react-native-modal";
 import moment from 'moment';
-import { Card, Divider, List, ListItem, FormInput } from 'react-native-elements';
+import { Card, Divider, List, ListItem, FormInput, Button as ButtonElement } from 'react-native-elements';
 import { Actions } from 'react-native-router-flux';
+import DatePicker from 'react-native-datepicker'
 import Config from 'react-native-config';
-import ActionButton from 'react-native-action-button';
 import { ImagePicker } from 'expo';
-import { fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest, sendTextProofRequest, sendPhotoProofRequest } from '../redux/actions';
+import { fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest, sendTextProofRequest, sendPhotoProofRequest, addCommitmentRequest, sendVoteRequest, fetchGroupsRequest } from '../redux/actions';
 import { makeGetGroupUsers, makeGetMyActiveObjectives, makeGetOtherUsersActiveObjectives, makeGetObjectivesToVote } from '../redux/selectors';
 
 const makeMapStateToProps = (state, ownProps) =>
@@ -37,11 +37,15 @@ const makeMapStateToProps = (state, ownProps) =>
     };
 };
 
+
 const mapDispatchToProps = (dispatch, ownProps) => ({
+    fetchGroups: () => dispatch(fetchGroupsRequest()),
     fetchGroupActiveObjectives: () => dispatch(fetchGroupActiveObjectivesRequest(ownProps.group.id)),
     fetchGroupObjectivesToVote: () => dispatch(fetchGroupObjectivesToVoteRequest(ownProps.group.id)),
     sendTextProof: (objectiveID, proofValue) => dispatch(sendTextProofRequest(ownProps.group.id, objectiveID, proofValue)),
-    sendPhotoProof: (objectiveID, photoURI) => dispatch(sendPhotoProofRequest(ownProps.group.id, objectiveID, photoURI))
+    sendPhotoProof: (objectiveID, photoURI) => dispatch(sendPhotoProofRequest(ownProps.group.id, objectiveID, photoURI)),
+    addCommitment: (description, date, bet) => dispatch(addCommitmentRequest(ownProps.group.id, description, moment(date).format('YYYY-MM-DDT00:00'), bet)),
+    sendVote: (objectiveID, value) => dispatch(sendVoteRequest(ownProps.group.id, objectiveID, value))
 });
 
 const addDays = (date, days) => {
@@ -70,13 +74,22 @@ class GroupScreen extends React.Component
             addTextProofModalVisible: false,
             addTextProofModalObjectiveID: null,
             currentPhotoObjectiveID: null,
-            addTextProofInputValue: ''
+            addTextProofInputValue: '',
+            addCommitmentDescriptionValue: '',
+            addCommitmentDateValue: moment().format('YYYY-MM-DD'),
+            addCommitmentBetValue: '',
         };
 
         this.toggleAddTextProofModal = this.toggleAddTextProofModal.bind(this);
+        this.toggleAddCommitmentModal = this.toggleAddCommitmentModal.bind(this);
         this.takePhotoProof = this.takePhotoProof.bind(this);
         this.onChangeAddTextProofInput = this.onChangeAddTextProofInput.bind(this);
+        this.onChangeAddCommitmentDescription = this.onChangeAddCommitmentDescription.bind(this);
+        this.onChangeAddCommitmentDate = this.onChangeAddCommitmentDate.bind(this);
+        this.onChangeAddCommitmentBet = this.onChangeAddCommitmentBet.bind(this);
         this.sendTextProof = this.sendTextProof.bind(this);
+        this.addCommitment = this.addCommitment.bind(this);
+        this.getUser = this.getUser.bind(this);
     }
 
     async onRefresh()
@@ -94,9 +107,22 @@ class GroupScreen extends React.Component
     async fetch()
     {
         await Promise.all([
+            this.props.fetchGroups(),
             this.props.fetchGroupActiveObjectives(),
             this.props.fetchGroupObjectivesToVote()
         ]);
+    }
+
+    getUser(userID)
+    {
+        let user = null;
+
+        this.props.users.forEach((crtUser) => {
+            if(crtUser.id === userID)
+                user = crtUser;
+        });
+
+        return user;
     }
 
     toggleAddTextProofModal(objectiveID=null)
@@ -116,6 +142,46 @@ class GroupScreen extends React.Component
                 addTextProofModalObjectiveID: objectiveID
             });
         }
+    }
+
+    toggleAddCommitmentModal()
+    {
+        if(this.state.addCommitmentModalVisible)
+        {
+            this.setState({
+                addCommitmentModalVisible: false
+            });
+        }
+        else
+        {
+            this.setState({
+                addCommitmentModalVisible: true,
+                addCommitmentDescriptionValue: '',
+                addCommitmentDateValue: moment().format('YYYY-MM-DD'),
+                addCommitmentBetValue: ''
+            });
+        }
+    }
+
+    onChangeAddCommitmentDescription(value)
+    {
+        this.setState({
+            addCommitmentDescriptionValue: value
+        });
+    }
+
+    onChangeAddCommitmentDate(value)
+    {
+        this.setState({
+            addCommitmentDateValue: value
+        });
+    }
+
+    onChangeAddCommitmentBet(value)
+    {
+        this.setState({
+            addCommitmentBetValue: value
+        });
     }
 
     async takePhotoProof(objectiveID)
@@ -142,6 +208,12 @@ class GroupScreen extends React.Component
         this.toggleAddTextProofModal();
     }
 
+    addCommitment()
+    {
+        this.props.addCommitment(this.state.addCommitmentDescriptionValue, this.state.addCommitmentDateValue, this.state.addCommitmentBetValue);
+        this.toggleAddCommitmentModal();
+    }
+
     render()
     {
         const rowsMyObjectives = this.props.myActiveObjectives.map(objective => (
@@ -151,8 +223,8 @@ class GroupScreen extends React.Component
                     <Text><Text style={styles.bet}>Bet: </Text><Text>{`${objective.bet_value} ${objective.bet_value === 1 ? 'coin' : 'coins'}`}</Text></Text>
                     {
                         this.props.group.time_frame > 1 ?
-                        <Text><Text style={styles.dateLabel}>Date: </Text><Text>{formatDate(new Date(objective.start_date))}</Text> - <Text>{formatDate(addDays(new Date(objective.start_date), this.props.group.time_frame - 1))}</Text></Text>
-                        : <Text><Text style={styles.dateLabel}>Date: </Text><Text>{formatDate(new Date(objective.start_date))}</Text></Text>
+                        <Text><Text style={styles.dateLabel}>Date: </Text><Text>{moment(objective.start_date).format('DD MMMM YYYY')}</Text> - <Text>{moment(objective.start_date).add(this.props.group.time_frame - 1, 'd').format('DD MMMM YYYY')}</Text></Text>
+                        : <Text><Text style={styles.dateLabel}>Date: </Text><Text>{moment(objective.start_date).format('DD MMMM YYYY')}</Text></Text>
                     }
                     {
                         !!objective.proof && objective.proof.created_date &&
@@ -192,12 +264,17 @@ class GroupScreen extends React.Component
         const rowsObjectivesToVote = this.props.objectivesToVote.map(objective => (
             <ListItem key={objective.id} hideChevron={true} subtitle={
                 <View style={styles.objectiveContents}>
+                    <Text><Text style={styles.description}>User: </Text><Text>{this.getUser(objective.user) ? this.getUser(objective.user).username : 'unknown'}</Text></Text>
                     <Text><Text style={styles.description}>Description: </Text><Text>{objective.description}</Text></Text>
                     <Text><Text style={styles.bet}>Bet: </Text><Text>{`${objective.bet_value} ${objective.bet_value === 1 ? 'coin' : 'coins'}`}</Text></Text>
                     {
                         this.props.group.time_frame > 1 ?
-                        <Text><Text style={styles.dateLabel}>Date: </Text><Text>{formatDate(new Date(objective.start_date))}</Text> - <Text>{formatDate(addDays(new Date(objective.start_date), this.props.group.time_frame - 1))}</Text></Text>
-                        : <Text><Text style={styles.dateLabel}>Date: </Text><Text>{objective.start_date}</Text></Text>
+                        <Text><Text style={styles.dateLabel}>Date: </Text><Text>{moment(objective.start_date).format('DD MMMM YYYY')}</Text> - <Text>{moment(objective.start_date).add(this.props.group.time_frame - 1, 'd').format('DD MMMM YYYY')}</Text></Text>
+                        : <Text><Text style={styles.dateLabel}>Date: </Text><Text>{moment(objective.start_date).format('DD MMMM YYYY')}</Text></Text>
+                    }
+                    {
+                        !!objective.proof && objective.proof.created_date &&
+                        <Text><Text style={styles.dateLabel}>Proof sent at: </Text><Text>{moment(objective.proof.created_date).format('Do MMMM YYYY, h:mm')}</Text></Text>
                     }
                     {
                         !!objective.proof && objective.proof.type === 'text' &&
@@ -209,22 +286,14 @@ class GroupScreen extends React.Component
                             <Image resizeMode="contain" style={styles.image} source={{uri: objective.proof.image}} />
                         </View>
                     }
-                    {
-                        !objective.proof && this.props.group.proof_type === 'text' &&
-                        <View>
-                            <TextInput 
-                                value={this.state.objectiveProofInput[objective.id] ? this.state.objectiveProofInput[objective.id] : ''}
-                                onChangeText={(text) => { 
-                                    const objectiveProofInput = this.state.objectiveProofInput;
-                                    objectiveProofInput[objective.id] = text;
-                                    this.setState({objectiveProofInput});
-                                }}
-                            />
-                            <TouchableOpacity onPress={() => this.sendProofForObjective(objective.id)}>
-                                <Text>Send</Text>
-                            </TouchableOpacity>
-                        </View>
-                    }
+                    <View style={styles.modalControlsWrapper}>
+                        <TouchableOpacity style={styles.buttonNegativeVote} onPress={() => this.props.sendVote(objective.id, false)}>
+                            <Text style={styles.buttonTextOpenAddTextProofModal}>You failed :(</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.buttonPositiveVote} onPress={() => this.props.sendVote(objective.id, true)}>
+                            <Text style={styles.buttonTextOpenAddTextProofModal}>Good job!</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             }>
             </ListItem>
@@ -233,12 +302,17 @@ class GroupScreen extends React.Component
         const rowsActiveObjectives = this.props.otherUsersActiveObjectives.map(objective => (
             <ListItem key={objective.id} hideChevron={true} subtitle={
                 <View style={styles.objectiveContents}>
+                    <Text><Text style={styles.description}>User: </Text><Text>{this.getUser(objective.user) ? this.getUser(objective.user).username : 'unknown'}</Text></Text>
                     <Text><Text style={styles.description}>Description: </Text><Text>{objective.description}</Text></Text>
                     <Text><Text style={styles.bet}>Bet: </Text><Text>{`${objective.bet_value} ${objective.bet_value === 1 ? 'coin' : 'coins'}`}</Text></Text>
                     {
                         this.props.group.time_frame > 1 ?
-                        <Text><Text style={styles.dateLabel}>Date: </Text><Text>{formatDate(new Date(objective.start_date))}</Text> - <Text>{formatDate(addDays(new Date(objective.start_date), this.props.group.time_frame - 1))}</Text></Text>
-                        : <Text><Text style={styles.dateLabel}>Date: </Text><Text>{objective.start_date}</Text></Text>
+                        <Text><Text style={styles.dateLabel}>Date: </Text><Text>{moment(objective.start_date).format('DD MMMM YYYY')}</Text> - <Text>{moment(objective.start_date).add(this.props.group.time_frame - 1, 'd').format('DD MMMM YYYY')}</Text></Text>
+                        : <Text><Text style={styles.dateLabel}>Date: </Text><Text>{moment(objective.start_date).format('DD MMMM YYYY')}</Text></Text>
+                    }
+                    {
+                        !!objective.proof && objective.proof.created_date &&
+                        <Text><Text style={styles.dateLabel}>Proof sent at: </Text><Text>{moment(objective.proof.created_date).format('Do MMMM YYYY, h:mm')}</Text></Text>
                     }
                     {
                         !!objective.proof && objective.proof.type === 'text' &&
@@ -250,14 +324,16 @@ class GroupScreen extends React.Component
                             <Image resizeMode="contain" style={styles.image} source={{uri: objective.proof.image}} />
                         </View>
                     }
-                    {
-                        !objective.proof && this.props.group.proof_type === 'text' &&
-                        <View>
-                            <TouchableOpacity onPress={() => this.sendProofForObjective(objective.id)}>
-                                <Text>Send</Text>
-                            </TouchableOpacity>
-                        </View>
-                    }
+                </View>
+            }>
+            </ListItem>
+        ));
+
+        const rowsUsers = this.props.users.map(user => (
+            <ListItem key={user.id} hideChevron={true} subtitle={
+                <View style={styles.userContents}>
+                    <Text><Text style={styles.description}>User: </Text><Text>{user.username}</Text></Text>
+                    <Text><Text style={styles.description}>Email: </Text><Text>{user.email}</Text></Text>
                 </View>
             }>
             </ListItem>
@@ -285,11 +361,37 @@ class GroupScreen extends React.Component
                     </View>
                 </Modal>
 
+                <Modal isVisible={this.state.addCommitmentModalVisible}>
+                    <View style={styles.modalContent}>
+                        <View>
+                            <FormInput value={this.state.addCommitmentDescriptionValue} onChangeText={this.onChangeAddCommitmentDescription} placeholder="Description" />
+                            <FormInput value={this.state.addCommitmentBetValue} onChangeText={this.onChangeAddCommitmentBet} keyboardType="numeric" placeholder="Bet" />
+                            <View style={{marginLeft: 65, marginTop: 10}}>
+                                <DatePicker minDate={moment().format('YYYY-MM-DD')} date={this.state.addCommitmentDateValue} mode="date" format="YYYY-MM-DD" onDateChange={this.onChangeAddCommitmentDate} placeholder="Start date" showIcon={false} />
+                            </View>
+                        </View>
+                        <View style={styles.modalControlsWrapper}>
+                            <TouchableOpacity style={styles.buttonCancelSendTextProof} onPress={this.toggleAddCommitmentModal}>
+                                <Text style={styles.buttonTextOpenAddTextProofModal}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.buttonSendTextProof} onPress={this.addCommitment}>
+                                <Text style={styles.buttonTextOpenAddTextProofModal}>Add</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+
                 <Card style={styles.header} title={this.props.group.title}>
                     <Text>{this.props.group.description}</Text>
                     <Divider style={styles.delimiter} />
                     <Text>Timeframe: <Text style={{fontWeight: 'bold'}}>{this.props.group.time_frame} days</Text></Text>
                     <Text>Proof type: <Text style={{fontWeight: 'bold'}}>{this.props.group.proof_type}</Text></Text>
+                    <ButtonElement
+                        backgroundColor={Config.DEFAULT_COLOR || '#494e6b'} 
+                        title='Make a commitment' 
+                        buttonStyle={styles.buttonMakeACommitment}
+                        onPress={this.toggleAddCommitmentModal}
+                    />
                 </Card>
                 <Card title="My commitments">
                     {!rowsMyObjectives.length &&
@@ -308,6 +410,12 @@ class GroupScreen extends React.Component
                         <Text style={{textAlign: 'center', color: '#333'}}>No active commitments.</Text>
                     }
                     {!!rowsActiveObjectives.length && rowsActiveObjectives.map(objective => objective)}
+                </Card>
+                <Card title="Group members">
+                    {!rowsUsers.length &&
+                        <Text style={{textAlign: 'center', color: '#333'}}>This group doesn't have any member.</Text>
+                    }
+                    {!!rowsUsers.length && rowsUsers.map(user => user)}
                 </Card>
                 <View style={{paddingTop: 20}} />
             </ScrollView>
@@ -384,6 +492,16 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         width: 120
     },
+    buttonPositiveVote: {
+        backgroundColor: '#28a745',
+        borderRadius: 5,
+        width: 135
+    },
+    buttonNegativeVote: {
+        backgroundColor: '#dc3545',
+        borderRadius: 5,
+        width: 135
+    },
     modalContent: {
         backgroundColor: '#FFF', 
         paddingTop: 20, 
@@ -396,6 +514,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         justifyContent: 'space-between',
         marginTop: 25
+    },
+    buttonMakeACommitment: {
+        borderRadius: 0, 
+        marginLeft: 0, 
+        marginRight: 0, 
+        marginBottom: 0,
+        marginTop: 25
+    },
+    userContents: {
+
     }
 });
 

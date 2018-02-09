@@ -77,30 +77,22 @@ export default class WinYourHabitClient extends Client
         return JSON.parse(response);
     }
 
-    async getGroupActiveObjectives(groupID)
+    async getGroupActiveObjectives(groupID, userID)
     {
-        // Temporary
-        return this.getObjectives();
-
         const headers = merge({}, this.constructor.defaultHeaders, {
             'Content-Type': 'application/json'
         });
 
-        const response = await this.makeRequest(`habit-groups/${groupID}/active`, 'GET');
-        return JSON.parse(response);
+        return JSON.parse(await this.makeRequest(`habit-groups/${groupID}/active-objectives/?user_id=${userID}`, 'GET'));
     }
 
     async getGroupObjectivesToBeVotedByUser(groupID, userID)
     {
-        // Temporary
-        return this.getObjectives();
-
         const headers = merge({}, this.constructor.defaultHeaders, {
             'Content-Type': 'application/json'
         });
 
-        const response = await this.makeRequest(`habit-groups/${groupID}/to-be-voted/${userID}`, 'GET');
-        return JSON.parse(response);
+        return JSON.parse(await this.makeRequest(`habit-groups/${groupID}/inactive-objectives/?user_id=${userID}`, 'GET'));
     }
 
     async createTextProof(objectiveID, proofValue)
@@ -136,6 +128,39 @@ export default class WinYourHabitClient extends Client
         });
 
         return JSON.parse(await this.makeRequest('proofs/', 'POST', body, headers));
+    }
+
+    async createObjective(groupID, userID, description, date, bet)
+    {
+        const body = new FormData();
+
+        body.append('user', userID);
+        body.append('habit_group', groupID);
+        body.append('description', description);
+        body.append('start_date', date);
+        body.append('bet_value', bet);
+        body.append('title', 'title_placeholder');
+
+        const headers = merge({}, this.constructor.defaultHeaders, {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        });
+
+        return JSON.parse(await this.makeRequest('objectives/', 'POST', body, headers));
+    }
+
+    async sendVote(objectiveID, userID, value)
+    {
+        const body = new FormData();
+
+        body.append('user', userID);
+        body.append('objective', objectiveID);
+        body.append('value', value);
+
+        const headers = merge({}, this.constructor.defaultHeaders, {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        });
+
+        return JSON.parse(await this.makeRequest('votes/', 'POST', body, headers));
     }
 
     static get defaultHeaders()

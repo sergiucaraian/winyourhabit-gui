@@ -18,7 +18,9 @@ import {
     SET_GROUP_ACTIVE_OBJECTIVES,
     SET_GROUP_OBJECTIVES_TO_VOTE,
     SEND_TEXT_PROOF_REQUEST,
-    SEND_PHOTO_PROOF_REQUEST
+    SEND_PHOTO_PROOF_REQUEST,
+    ADD_COMMITMENT_REQUEST,
+    SEND_VOTE_REQUEST
 } from './types';
 
 export const requestError = createAction(REQUEST_ERROR, errorMessage => (errorMessage));
@@ -43,6 +45,8 @@ export const fetchGroupActiveObjectivesRequest = createAction(FETCH_GROUP_ACTIVE
 export const fetchGroupObjectivesToVoteRequest = createAction(FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST, groupID => groupID);
 export const sendTextProofRequest = createAction(SEND_TEXT_PROOF_REQUEST, (groupID, objectiveID, proofValue) => ({groupID, objectiveID, proofValue}));
 export const sendPhotoProofRequest = createAction(SEND_PHOTO_PROOF_REQUEST, (groupID, objectiveID, photoURI) => ({groupID, objectiveID, photoURI}));
+export const addCommitmentRequest = createAction(ADD_COMMITMENT_REQUEST, (groupID, description, date, bet) => ({groupID, description, date, bet}));
+export const sendVoteRequest = createAction(SEND_VOTE_REQUEST, (groupID, objectiveID, value) => ({groupID, objectiveID, value}));
 
 export const setUsers = createAction(SET_USERS, users => users);
 export const setGroups = createAction(SET_GROUPS, groups => groups);

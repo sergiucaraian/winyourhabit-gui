@@ -4,7 +4,7 @@ import Config from 'react-native-config';
 import { SubmissionError } from 'redux-form';
 import Authentication from '../logic/Authentication';
 import { requestError, loginRequest, setLoggedInUserID, setUsers, setGroups, setUserGroups, setObjectives, getGroupActiveObjectives, getGroupObjectivesToVote, setGroupActiveObjectives, setGroupObjectivesToVote, fetchObjectivesRequest, fetchGroupsRequest, fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest } from './actions';
-import { SEND_TEXT_PROOF_REQUEST, LOGIN_REQUEST, REGISTER_REQUEST, LOGOUT, FETCH_USERS_REQUEST, FETCH_GROUPS_REQUEST, FETCH_USER_GROUPS_REQUEST, FETCH_OBJECTIVES_REQUEST, FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST, FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST, SEND_PHOTO_PROOF_REQUEST } from './types';
+import { ADD_COMMITMENT_REQUEST, SEND_TEXT_PROOF_REQUEST, LOGIN_REQUEST, REGISTER_REQUEST, LOGOUT, FETCH_USERS_REQUEST, FETCH_GROUPS_REQUEST, FETCH_USER_GROUPS_REQUEST, FETCH_OBJECTIVES_REQUEST, FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST, FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST, SEND_PHOTO_PROOF_REQUEST, SEND_VOTE_REQUEST } from './types';
 import Cookies from 'js-cookie';
 import jwtDecode from 'jwt-decode';
 
@@ -216,10 +216,11 @@ export function* fetchGroupActiveObjectives()
     while (true)
     {
         const action = yield take(FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST);
+        const loggedInUserID = yield select(state => state.loggedInUserID); 
     
         try
         {
-            const objectives = yield call([api, api.getGroupActiveObjectives], action.payload);
+            const objectives = yield call([api, api.getGroupActiveObjectives], action.payload, loggedInUserID);
             yield put(setGroupActiveObjectives(action.payload, objectives));
         }
         catch (error)
@@ -242,7 +243,7 @@ export function* fetchGroupObjectivesToVote()
 
         try
         {
-            const objectives = yield call([api, api.getObjectives], action.payload, loggedInUserID);
+            const objectives = yield call([api, api.getGroupObjectivesToBeVotedByUser], action.payload, loggedInUserID);
             yield put(setGroupObjectivesToVote(action.payload, objectives));
         }
         catch (error)
@@ -303,6 +304,59 @@ export function* sendPhotoProof()
 }
 
 
+export function* addObjective()
+{
+    const api = yield getContext('api');
+
+    while (true)
+    {
+        const action = yield take(ADD_COMMITMENT_REQUEST);
+        const loggedInUserID = yield select(state => state.loggedInUserID); 
+
+        try
+        {
+            const proof = yield call([api, api.createObjective], action.payload.groupID, loggedInUserID, action.payload.description, action.payload.date, action.payload.bet );
+            yield put(fetchGroupsRequest());
+            yield put(fetchGroupActiveObjectivesRequest(action.payload.groupID));
+            yield put(fetchGroupObjectivesToVoteRequest(action.payload.groupID));
+        }
+        catch (error)
+        {
+            console.error(error);
+            yield put(requestError(error.message));
+            continue;
+        }
+    }
+}
+
+
+export function* sendVote()
+{
+    const api = yield getContext('api');
+
+    while (true)
+    {
+        const action = yield take(SEND_VOTE_REQUEST);
+        const loggedInUserID = yield select(state => state.loggedInUserID); 
+
+        try
+        {
+            const vote = yield call([api, api.sendVote], action.payload.objectiveID, loggedInUserID, action.payload.value );
+
+            yield put(fetchGroupsRequest());
+            yield put(fetchGroupActiveObjectivesRequest(action.payload.groupID));
+            yield put(fetchGroupObjectivesToVoteRequest(action.payload.groupID));
+        }
+        catch (error)
+        {
+            console.error(error);
+            yield put(requestError(error.message));
+            continue;
+        }
+    }
+}
+
+
 export default function* ()
 {
     yield fork(loginFlow);
@@ -316,4 +370,6 @@ export default function* ()
     yield fork(fetchGroupObjectivesToVote);
     yield fork(sendTextProof);
     yield fork(sendPhotoProof);
+    yield fork(addObjective);
+    yield fork(sendVote);
 }
