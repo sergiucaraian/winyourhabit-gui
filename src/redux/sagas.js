@@ -395,6 +395,8 @@ export function* addUserToGroup()
         {
             const result = yield call([api, api.addUserToGroup], action.payload.userID, action.payload.groupID );
             yield put(fetchGroupsRequest());
+            yield put(fetchGroupActiveObjectivesRequest(action.payload.groupID));
+            yield put(fetchGroupObjectivesToVoteRequest(action.payload.groupID));
         }
         catch (error)
         {

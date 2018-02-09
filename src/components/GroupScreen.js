@@ -8,7 +8,7 @@ import { Actions } from 'react-native-router-flux';
 import DatePicker from 'react-native-datepicker'
 import Config from 'react-native-config';
 import { ImagePicker } from 'expo';
-import { fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest, sendTextProofRequest, sendPhotoProofRequest, addCommitmentRequest, sendVoteRequest, fetchGroupsRequest } from '../redux/actions';
+import { addUserToGroupRequest, fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest, sendTextProofRequest, sendPhotoProofRequest, addCommitmentRequest, sendVoteRequest, fetchGroupsRequest } from '../redux/actions';
 import { makeGetGroupUsers, makeGetMyActiveObjectives, makeGetOtherUsersActiveObjectives, makeGetObjectivesToVote } from '../redux/selectors';
 
 const makeMapStateToProps = (state, ownProps) =>
@@ -45,6 +45,7 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     sendTextProof: (objectiveID, proofValue) => dispatch(sendTextProofRequest(ownProps.group.id, objectiveID, proofValue)),
     sendPhotoProof: (objectiveID, photoURI) => dispatch(sendPhotoProofRequest(ownProps.group.id, objectiveID, photoURI)),
     addCommitment: (description, date, bet) => dispatch(addCommitmentRequest(ownProps.group.id, description, moment(date).format('YYYY-MM-DDT00:00'), bet)),
+    addUser: (userID) => dispatch(addUserToGroupRequest(userID, ownProps.group.id)),
     sendVote: (objectiveID, value) => dispatch(sendVoteRequest(ownProps.group.id, objectiveID, value))
 });
 
@@ -78,17 +79,22 @@ class GroupScreen extends React.Component
             addCommitmentDescriptionValue: '',
             addCommitmentDateValue: moment().format('YYYY-MM-DD'),
             addCommitmentBetValue: '',
+            addUserModalVisible: false,
+            addUserModalUserID: ''
         };
 
         this.toggleAddTextProofModal = this.toggleAddTextProofModal.bind(this);
         this.toggleAddCommitmentModal = this.toggleAddCommitmentModal.bind(this);
+        this.toggleAddUserModal = this.toggleAddUserModal.bind(this);
         this.takePhotoProof = this.takePhotoProof.bind(this);
         this.onChangeAddTextProofInput = this.onChangeAddTextProofInput.bind(this);
         this.onChangeAddCommitmentDescription = this.onChangeAddCommitmentDescription.bind(this);
         this.onChangeAddCommitmentDate = this.onChangeAddCommitmentDate.bind(this);
         this.onChangeAddCommitmentBet = this.onChangeAddCommitmentBet.bind(this);
+        this.onChangeAddUserInput = this.onChangeAddUserInput.bind(this);
         this.sendTextProof = this.sendTextProof.bind(this);
         this.addCommitment = this.addCommitment.bind(this);
+        this.addUser = this.addUser.bind(this);
         this.getUser = this.getUser.bind(this);
     }
 
@@ -163,6 +169,23 @@ class GroupScreen extends React.Component
         }
     }
 
+    toggleAddUserModal()
+    {
+        if(this.state.addUserModalVisible)
+        {
+            this.setState({
+                addUserModalVisible: false
+            });
+        }
+        else
+        {
+            this.setState({
+                addUserModalVisible: true,
+                addUserModalUserID: '',
+            });
+        }
+    }
+
     onChangeAddCommitmentDescription(value)
     {
         this.setState({
@@ -181,6 +204,13 @@ class GroupScreen extends React.Component
     {
         this.setState({
             addCommitmentBetValue: value
+        });
+    }
+
+    onChangeAddUserInput(value)
+    {
+        this.setState({
+            addUserModalUserID: value
         });
     }
 
@@ -212,6 +242,12 @@ class GroupScreen extends React.Component
     {
         this.props.addCommitment(this.state.addCommitmentDescriptionValue, this.state.addCommitmentDateValue, this.state.addCommitmentBetValue);
         this.toggleAddCommitmentModal();
+    }
+
+    addUser()
+    {
+        this.props.addUser(this.state.addUserModalUserID);
+        this.toggleAddUserModal();
     }
 
     render()
@@ -381,6 +417,22 @@ class GroupScreen extends React.Component
                     </View>
                 </Modal>
 
+                <Modal isVisible={this.state.addUserModalVisible}>
+                    <View style={styles.modalContent}>
+                        <View>
+                            <FormInput value={this.state.addUserModalUserID} onChangeText={this.onChangeAddUserInput} keyboardType="numeric" placeholder="User ID" />
+                        </View>
+                        <View style={styles.modalControlsWrapper}>
+                            <TouchableOpacity style={styles.buttonCancelSendTextProof} onPress={this.toggleAddUserModal}>
+                                <Text style={styles.buttonTextOpenAddTextProofModal}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.buttonSendTextProof} onPress={this.addUser}>
+                                <Text style={styles.buttonTextOpenAddTextProofModal}>Add</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+
                 <Card style={styles.header} title={this.props.group.title}>
                     <Text>{this.props.group.description}</Text>
                     <Divider style={styles.delimiter} />
@@ -412,6 +464,11 @@ class GroupScreen extends React.Component
                     {!!rowsActiveObjectives.length && rowsActiveObjectives.map(objective => objective)}
                 </Card>
                 <Card title="Group members">
+                    <View style={styles.buttonWrapperOpenAddUserModal}>
+                        <TouchableOpacity style={styles.buttonOpenAddUserModal} onPress={() => this.toggleAddUserModal()}>
+                            <Text style={styles.buttonTextOpenAddUserModal}>Add user to group</Text>
+                        </TouchableOpacity>
+                    </View>
                     {!rowsUsers.length &&
                         <Text style={{textAlign: 'center', color: '#333'}}>This group doesn't have any member.</Text>
                     }
@@ -471,12 +528,26 @@ const styles = StyleSheet.create({
         marginTop: 12,
         justifyContent: 'center'
     },
+    buttonWrapperOpenAddUserModal: {
+        marginTop: 12,
+        justifyContent: 'center'
+    },
     buttonOpenAddTextProofModal: {
         backgroundColor: Config.DEFAULT_COLOR || '#494e6b',
         borderRadius: 5,
         width: 150
     },
+    buttonOpenAddUserModal: {
+        backgroundColor: Config.DEFAULT_COLOR || '#494e6b',
+        borderRadius: 5
+    },
     buttonTextOpenAddTextProofModal: {
+        paddingTop: 10,
+        paddingBottom: 10,
+        color: '#FFF',
+        textAlign: 'center'
+    },
+    buttonTextOpenAddUserModal: {
         paddingTop: 10,
         paddingBottom: 10,
         color: '#FFF',
