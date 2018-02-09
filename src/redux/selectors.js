@@ -56,10 +56,21 @@ export const getObjectivesToVote = state => state.objectivesToVote;
 export const makeGetGroupUsers = props => createSelector(
     getGroups,
     (groups) => {
-        if(!groups[props.groupID])
-            return [];
+        let group = null;
 
-        return groups[props.groupID].users;
+        groups.forEach((crtGroup) => {
+            if(crtGroup.id === props.groupID)
+            {
+                group = crtGroup;
+            }
+        });
+
+        if(!group)
+        {
+            return [];
+        }
+
+        return group.users;
     }
 );
 

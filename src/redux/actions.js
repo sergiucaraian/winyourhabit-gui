@@ -20,7 +20,9 @@ import {
     SEND_TEXT_PROOF_REQUEST,
     SEND_PHOTO_PROOF_REQUEST,
     ADD_COMMITMENT_REQUEST,
-    SEND_VOTE_REQUEST
+    SEND_VOTE_REQUEST,
+    ADD_GROUP_REQUEST,
+    ADD_USER_TO_GROUP_REQUEST
 } from './types';
 
 export const requestError = createAction(REQUEST_ERROR, errorMessage => (errorMessage));
@@ -47,6 +49,8 @@ export const sendTextProofRequest = createAction(SEND_TEXT_PROOF_REQUEST, (group
 export const sendPhotoProofRequest = createAction(SEND_PHOTO_PROOF_REQUEST, (groupID, objectiveID, photoURI) => ({groupID, objectiveID, photoURI}));
 export const addCommitmentRequest = createAction(ADD_COMMITMENT_REQUEST, (groupID, description, date, bet) => ({groupID, description, date, bet}));
 export const sendVoteRequest = createAction(SEND_VOTE_REQUEST, (groupID, objectiveID, value) => ({groupID, objectiveID, value}));
+export const addGroupRequest = createAction(ADD_GROUP_REQUEST, (title, description, timeframe, proofType) => ({title, description, timeframe, proofType}));
+export const addUserToGroupRequest = createAction(ADD_USER_TO_GROUP_REQUEST, (userID, groupID) => ({userID, groupID}));
 
 export const setUsers = createAction(SET_USERS, users => users);
 export const setGroups = createAction(SET_GROUPS, groups => groups);

@@ -163,6 +163,35 @@ export default class WinYourHabitClient extends Client
         return JSON.parse(await this.makeRequest('votes/', 'POST', body, headers));
     }
 
+    async addGroup(title, description, proofType, timeframe)
+    {
+        const body = new FormData();
+
+        body.append('title', title);
+        body.append('description', description);
+        body.append('proof_type', proofType);
+        body.append('time_frame', timeframe);
+
+        const headers = merge({}, this.constructor.defaultHeaders, {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        });
+
+        return JSON.parse(await this.makeRequest('habit-groups/', 'POST', body, headers));
+    }
+
+    async addUserToGroup(userID, groupID)
+    {
+        const body = new FormData();
+
+        body.append('user_id', userID);
+
+        const headers = merge({}, this.constructor.defaultHeaders, {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        });
+
+        return JSON.parse(await this.makeRequest(`habit-groups/${groupID}/join/`, 'POST', body, headers));
+    }
+
     static get defaultHeaders()
     {
         return merge({}, super.constructor.defaultHeaders, {

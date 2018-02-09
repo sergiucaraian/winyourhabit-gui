@@ -3,8 +3,8 @@ import { Actions } from 'react-native-router-flux';
 import Config from 'react-native-config';
 import { SubmissionError } from 'redux-form';
 import Authentication from '../logic/Authentication';
-import { requestError, loginRequest, setLoggedInUserID, setUsers, setGroups, setUserGroups, setObjectives, getGroupActiveObjectives, getGroupObjectivesToVote, setGroupActiveObjectives, setGroupObjectivesToVote, fetchObjectivesRequest, fetchGroupsRequest, fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest } from './actions';
-import { ADD_COMMITMENT_REQUEST, SEND_TEXT_PROOF_REQUEST, LOGIN_REQUEST, REGISTER_REQUEST, LOGOUT, FETCH_USERS_REQUEST, FETCH_GROUPS_REQUEST, FETCH_USER_GROUPS_REQUEST, FETCH_OBJECTIVES_REQUEST, FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST, FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST, SEND_PHOTO_PROOF_REQUEST, SEND_VOTE_REQUEST } from './types';
+import { addUserToGroupRequest, requestError, loginRequest, setLoggedInUserID, setUsers, setGroups, setUserGroups, setObjectives, getGroupActiveObjectives, getGroupObjectivesToVote, setGroupActiveObjectives, setGroupObjectivesToVote, fetchObjectivesRequest, fetchGroupsRequest, fetchGroupActiveObjectivesRequest, fetchGroupObjectivesToVoteRequest } from './actions';
+import { ADD_COMMITMENT_REQUEST, SEND_TEXT_PROOF_REQUEST, LOGIN_REQUEST, REGISTER_REQUEST, LOGOUT, FETCH_USERS_REQUEST, FETCH_GROUPS_REQUEST, FETCH_USER_GROUPS_REQUEST, FETCH_OBJECTIVES_REQUEST, FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST, FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST, SEND_PHOTO_PROOF_REQUEST, SEND_VOTE_REQUEST, ADD_GROUP_REQUEST, ADD_USER_TO_GROUP_REQUEST } from './types';
 import Cookies from 'js-cookie';
 import jwtDecode from 'jwt-decode';
 
@@ -357,6 +357,55 @@ export function* sendVote()
 }
 
 
+export function* addGroup()
+{
+    const api = yield getContext('api');
+
+    while (true)
+    {
+        const action = yield take(ADD_GROUP_REQUEST);
+        const loggedInUserID = yield select(state => state.loggedInUserID); 
+        
+        try
+        {
+            const result = yield call([api, api.addGroup], action.payload.title, action.payload.description, action.payload.proofType, action.payload.timeframe);
+
+            yield put(addUserToGroupRequest(loggedInUserID, result.id));
+            yield put(fetchGroupsRequest());
+        }
+        catch (error)
+        {
+            console.error(error);
+            yield put(requestError(error.message));
+            continue;
+        }
+    }
+}
+
+
+export function* addUserToGroup()
+{
+    const api = yield getContext('api');
+
+    while (true)
+    {
+        const action = yield take(ADD_USER_TO_GROUP_REQUEST);
+
+        try
+        {
+            const result = yield call([api, api.addUserToGroup], action.payload.userID, action.payload.groupID );
+            yield put(fetchGroupsRequest());
+        }
+        catch (error)
+        {
+            console.error(error);
+            yield put(requestError(error.message));
+            continue;
+        }
+    }
+}
+
+
 export default function* ()
 {
     yield fork(loginFlow);
@@ -372,4 +421,6 @@ export default function* ()
     yield fork(sendPhotoProof);
     yield fork(addObjective);
     yield fork(sendVote);
+    yield fork(addGroup);
+    yield fork(addUserToGroup);
 }
