@@ -114,8 +114,8 @@ const styles = StyleSheet.create({
 const ReduxLoginForm = reduxForm({
     form: 'login', 
     initialValues: {
-        username: '',
-        password: '',
+        username: 'sergiu',
+        password: '123123123',
     }
 })(LoginScreen);
 export default connect(null, mapDispatchToProps)(ReduxLoginForm);

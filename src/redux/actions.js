@@ -3,7 +3,20 @@ import {
     REQUEST_ERROR,
     LOGIN_REQUEST,
     REGISTER_REQUEST,
-    LOGOUT
+    LOGOUT,
+    SET_LOGGED_IN_USER_ID,
+    FETCH_USERS_REQUEST,
+    FETCH_GROUPS_REQUEST,
+    FETCH_USER_GROUPS_REQUEST,
+    FETCH_OBJECTIVES_REQUEST,
+    FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST,
+    FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST,
+    SET_USERS,
+    SET_GROUPS,
+    SET_USER_GROUPS,
+    SET_OBJECTIVES,
+    SET_GROUP_ACTIVE_OBJECTIVES,
+    SET_GROUP_OBJECTIVES_TO_VOTE
 } from './types';
 
 export const requestError = createAction(REQUEST_ERROR, errorMessage => (errorMessage));
@@ -17,3 +30,19 @@ export const registerRequest = createAction(REGISTER_REQUEST, (username, email, 
 }));
 
 export const logout = createAction(LOGOUT);
+
+export const setLoggedInUserID = createAction(SET_LOGGED_IN_USER_ID, id => id);
+
+export const fetchUsersRequest = createAction(FETCH_USERS_REQUEST);
+export const fetchGroupsRequest = createAction(FETCH_GROUPS_REQUEST);
+export const fetchUserGroupsRequest = createAction(FETCH_USER_GROUPS_REQUEST);
+export const fetchObjectivesRequest = createAction(FETCH_OBJECTIVES_REQUEST);
+export const fetchGroupActiveObjectivesRequest = createAction(FETCH_GROUP_ACTIVE_OBJECTIVES_REQUEST, groupID => groupID);
+export const fetchGroupObjectivesToVoteRequest = createAction(FETCH_GROUP_OBJECTIVES_TO_VOTE_REQUEST, groupID => groupID);
+
+export const setUsers = createAction(SET_USERS, users => users);
+export const setGroups = createAction(SET_GROUPS, groups => groups);
+export const setUserGroups = createAction(SET_USER_GROUPS, userGroups => userGroups);
+export const setObjectives = createAction(SET_OBJECTIVES, objectives => objectives);
+export const setGroupActiveObjectives = createAction(SET_GROUP_ACTIVE_OBJECTIVES, (groupID, objectives) => ({groupID, objectives}) );
+export const setGroupObjectivesToVote = createAction(SET_GROUP_OBJECTIVES_TO_VOTE, (groupID, objectives) => ({groupID, objectives}) );

@@ -13,7 +13,7 @@ class ReduxRouter extends React.Component {
 
   render () {
     return (
-      <Router createReducer={this.reducerCreate.bind(this)} >
+      <Router createReducer={this.reducerCreate.bind(this)} {...this.props} >
         {this.props.children}
       </Router>
     );
